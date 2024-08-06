@@ -16,6 +16,7 @@ https://www.reddit.com/r/StableDiffusion/comments/1ehl4as/how_to_run_flux_8bit_q
 
 # References
 [1] black-forest-labs/FLUX.1-schnell. https://huggingface.co/black-forest-labs/FLUX.1-schnell
+[2] Sayak Paul, David Corvoysier. Memory-efficient Diffusion Transformers with Quanto and Diffusers. https://huggingface.co/blog/quanto-diffusers
 """
 
 import os
