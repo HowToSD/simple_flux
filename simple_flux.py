@@ -11,15 +11,19 @@ Functions:
 Copyright (c) 2024 Hideyuki Inada
 
 # Credit
-Code to interact with the Flux model is based on a github user's code. Link to the code is available below:
-https://www.reddit.com/r/StableDiffusion/comments/1ehl4as/how_to_run_flux_8bit_quantized_locally_on_your_16/
+* Code to interact with the Flux model is based on a github user's code. Link to the code is available below:
+  https://www.reddit.com/r/StableDiffusion/comments/1ehl4as/how_to_run_flux_8bit_quantized_locally_on_your_16/
+
+* Further memory footprint reduction idea is from [3]
 
 # References
 [1] black-forest-labs/FLUX.1-schnell. https://huggingface.co/black-forest-labs/FLUX.1-schnell
 [2] Sayak Paul, David Corvoysier. Memory-efficient Diffusion Transformers with Quanto and Diffusers. https://huggingface.co/blog/quanto-diffusers
+[3] https://huggingface.co/black-forest-labs/FLUX.1-schnell/discussions/5
 """
 
 import os
+import logging
 import time
 import json
 import gradio as gr
@@ -43,6 +47,9 @@ MODEL_ID = "black-forest-labs/FLUX.1-schnell"
 MODEL_REVISION = "refs/pr/1"
 TEXT_MODEL_ID = "openai/clip-vit-large-patch14"
 MODEL_DATA_TYPE = torch.bfloat16
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+logger = logging.getLogger(__name__)
 
 class ImageGenerator:
     """
@@ -72,12 +79,14 @@ class ImageGenerator:
         freeze(model)
         return model
 
-    def __init__(self, outputs_dir: Optional[str] = None):
+    def __init__(self, outputs_dir: Optional[str] = None,
+                 low_mem: Optional[bool]=False):
         """
         Initializes the ImageGenerator with the specified checkpoint and output directories.
 
         Args:
             outputs_dir (Optional[str]): The directory to save generated images.
+            low_mem (Optional[bool]): Use less GPU memory.
         """
         self.outputs_dir = outputs_dir
         self.file_paths = None
@@ -87,12 +96,14 @@ class ImageGenerator:
         # Initialize required models
         # Text encoders
         # 1
+        logger.info("Instantiating CLIP text tokenizer and model")
         self.tokenizer = CLIPTokenizer.from_pretrained(
             TEXT_MODEL_ID , torch_dtype=MODEL_DATA_TYPE)
         self.text_encoder = CLIPTextModel.from_pretrained(
             TEXT_MODEL_ID , torch_dtype=MODEL_DATA_TYPE)
 
         # 2
+        logger.info("Instantiating T5 text tokenizer and model")
         self.tokenizer_2 = T5TokenizerFast.from_pretrained(
             MODEL_ID, subfolder="tokenizer_2", torch_dtype=MODEL_DATA_TYPE,
             revision=MODEL_REVISION)
@@ -101,19 +112,26 @@ class ImageGenerator:
             revision=MODEL_REVISION)
 
         # Transformers
+        logger.info("Instantiating scheduler")
         self.scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
             MODEL_ID, subfolder="scheduler", revision=MODEL_REVISION)
+        logger.info("Instantiating transformer")
         self.transformer = FluxTransformer2DModel.from_pretrained(
             MODEL_ID, subfolder="transformer", torch_dtype=MODEL_DATA_TYPE,
             revision=MODEL_REVISION)
 
         # VAE
+        logger.info("Instantiating VAE")
         self.vae = AutoencoderKL.from_pretrained(
             MODEL_ID, subfolder="vae", torch_dtype=MODEL_DATA_TYPE,
             revision=MODEL_REVISION)
 
-        self.quantize_and_freeze(self.text_encoder_2)
-        self.quantize_and_freeze(self.transformer)
+        if low_mem is False:
+            logger.info("Quantizing T5 to 8 bits")
+            self.quantize_and_freeze(self.text_encoder_2)
+
+            logger.info("Quantizing transformer to 8 bits")
+            self.quantize_and_freeze(self.transformer)
 
         # Create a pipeline without T5 and transformer
         self.pipe = FluxPipeline(
@@ -130,7 +148,14 @@ class ImageGenerator:
         self.pipe.text_encoder_2 = self.text_encoder_2
         self.pipe.transformer = self.transformer
 
-        self.pipe.enable_model_cpu_offload()
+        if low_mem:
+            logging.info("Using low memory mode")
+            self.pipe.vae.enable_tiling()
+            self.pipe.vae.enable_slicing()
+            self.pipe.enable_sequential_cpu_offload()
+        else:
+            logging.info("Using standard memory mode")
+            self.pipe.enable_model_cpu_offload()
 
         if outputs_dir is None:
             raise ValueError("Output directory is not specified.")
@@ -171,6 +196,10 @@ class ImageGenerator:
             num_inference_steps=steps,
             guidance_scale=guidance_scale
         ).images[0]
+
+        logging.info(
+            "Image generated. Max GPU memory allocated (GB): " + \
+            f"{torch.cuda.max_memory_allocated() / (1024 ** 3)}")
 
         file_name = str(time.time())
         output_path = os.path.join(self.outputs_dir, file_name + ".png")
@@ -287,9 +316,25 @@ class ImageGenerator:
 def main() -> None:
     """
     The main function to create an instance of ImageGenerator and launch the application.
+
+    To run in normal memory mode:
+    ```
+    python simple_flux.py --low_mem
+    ```
+
+    To run in low memory mode:
+    ```
+    python simple_flux.py --low_mem
+    ```
     """
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('--low_mem', action='store_true', help='Use less GPU memory')
+    args = parser.parse_args()
+
     image_generator = ImageGenerator(
-        outputs_dir=OUTPUTS_DIR
+        outputs_dir=OUTPUTS_DIR,
+        low_mem=args.low_mem
     )
     image_generator()
 
