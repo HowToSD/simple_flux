@@ -10,7 +10,7 @@ Simple Flux offers a lightweight web interface to Flux using Gradio.
 # Hardware & software requirements
 This was only tested on Ubuntu with NVIVIA RTX 4090.
 Using nvidia-smi command, I see 13986MiB for the Python process during image generation.
-So you can try if you have 16GB GPU RAM.
+So you can try if you have 16GB GPU RAM (Note: New --low_mem option that was just added should require much less than 16GB. This is being tested right now.).
 
 # How to install Simple Flux
 Currently, only systems with NVIDIA GPU and CUDA are supported.
