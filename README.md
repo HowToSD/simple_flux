@@ -17,12 +17,21 @@ Currently, only systems with NVIDIA GPU and CUDA are supported.
 I am using Linux and these steps have not been tested on Windows yet.
 
 ### Overview
+1. Copy files from github
 1. Set up conda environment
 1. Install Pytorch
 1. Install other python packages
 
 ### Steps
-1. Set up conda environment
+1. Copy files from github
+
+   Open the terminal and go to a directory that you want to install Simple Flux.
+   Type:
+   ```
+   git clone https://github.com/HowToSD/simple_flux.git
+   ```
+
+2. Set up conda environment
 
     Run the following. Note that if your system does not have conda, you need to install it first.
 
@@ -31,7 +40,7 @@ I am using Linux and these steps have not been tested on Windows yet.
     conda activate simpleflux
     ```
 
-2. Install Pytorch
+3. Install Pytorch
    
     ```
     conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
@@ -39,17 +48,23 @@ I am using Linux and these steps have not been tested on Windows yet.
     For more information, refer to the installation section at https://pytorch.org/.
 
 
-3. Install other python packages
+4. Install other python packages
 
     ```
     pip install -r requirements.txt
     ```
 
-4. Start Simple Flux
+5. Start Simple Flux
    Type:
    ```
    python simple_flux.py
    ```
+
+   If you have low GPU memory, type:
+   ```
+   python simple_flux.py --low_mem
+   ```
+
    This should start Gradio.
 
 5.  Using your browser, access the URL displayed in the above.
