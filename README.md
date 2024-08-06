@@ -41,6 +41,10 @@ I am using Linux and these steps have not been tested on Windows yet.
 
 3. Install other python packages
 
+    ```
+    pip install -r requirements.txt
+    ```
+
 4. Start Simple Flux
    Type:
    ```
