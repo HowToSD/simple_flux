@@ -8,9 +8,15 @@ Simple Flux offers a lightweight web interface to Flux using Gradio.
 </figure>
 
 # Hardware & software requirements
-This was only tested on Ubuntu with NVIVIA RTX 4090 and an old GTX 1070 (8GB GPU RAM).
-If your GPU has less than 16GB GPU RAM, you need to specify --low_mem when you start the script.
+Tested on Ubuntu with NVIVIA RTX 4090 and GTX 1070 (8GB GPU RAM).
+
+## GPU Memory
+If your GPU has less than 16GB GPU memory, you need to specify --low_mem when you start the script.
 Max GPU memory consumption that was observed when --low_mem was specified was 5.88GB, so 6GB GPU RAM may work.
+
+## System RAM
+Tested on 64GB RAM hosts.
+I learned from a user that he/she was able to run it with 40GB RAM on Windows 11. It is unclear if you can run it on a machine with less RAM than that.
 
 # How to install Simple Flux
 Currently, only systems with NVIDIA GPU and CUDA are supported.
